@@ -23,13 +23,13 @@ function init() {
     isLoggedIn = false;
 
     // Local testing
-    BASE_URL = "http://localhost:3000/api";
+    //BASE_URL = "http://localhost:3000/api";
 
     // LAN testing
     //BASE_URL = "http://192.168.0.132:3000/api";
 
     // Deployment
-    //BASE_URL = "/api";
+    BASE_URL = "/api";
 
      // Setup navigation links
     document.getElementById("navMenuToggle").addEventListener("click", function() {
