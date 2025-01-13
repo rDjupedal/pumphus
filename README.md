@@ -27,7 +27,7 @@ As a beginner of JavaScript I wrote the project with the goal of finishing it wi
 ### Executing program
 
 * Start a static webserver with the "public" folder as root. For example by running ```python3 -m http.server 8080``` from the public directory.
-* Start NodeJs by running ```ǹode``` in the terminal.
+* Start NodeJs by running ```node app.js``` in the terminal.
 * To be able to run the program first time with an empty database you must first create a user;  
   * In routes/userRoutes.js temporarly change DEBUG to true (to disable authentification)
   * Run ```curl 'http://localhost:3000/api/newuser' -X POST -H "Content-Type: application/json" -d '{"username":"admin","password":"admin"}'```. This will create the useraccount "admin" with password "admin".
