@@ -665,9 +665,11 @@ function editRecord(record, storeFunc) {
             input.inputMode = "decimal";    // This property is also used when validating input
             input.pattern = "[0-9]*";
 
-            // Allow only digits and decimal character (.) to be added into the field
+            // Allow only digits and decimal character (.) to be added into the field (, converts to .)
             const regex = /[^0-9|/.]/g;
+            const regex2 = /,/g
             input.addEventListener("input", () => {
+                input.value = input.value.replace(regex2, ".");
                 input.value = input.value.replace(regex, "")
             });
         }
@@ -683,13 +685,13 @@ function editRecord(record, storeFunc) {
         });
 
         // Pre-fill the inputs
-        if (FIELDS[field].type == "date") {
+        if (FIELDS[field].type === "date") {
             input.type = "date";
             input.value = getDate(record[field]);
         } else input.value = record[field];
 
         // Leave blank input when missing data
-        if (input.value == "undefined") input.value ="";
+        if (input.value === "undefined") input.value ="";
 
         tr.insertCell().appendChild(input);
     }
