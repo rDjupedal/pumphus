@@ -659,10 +659,10 @@ function editRecord(record, storeFunc) {
         const required = FIELDS[field].req;
         if (required) input.classList.add("required");
 
-        if (FIELDS[field].type == "number") {
+        if (FIELDS[field].type === "number") {
 
             // Affects the virtual keyboard on mobile devices
-            input.inputMode = "numeric";    // This property is also used when validating input
+            input.inputMode = "decimal";    // This property is also used when validating input
             input.pattern = "[0-9]*";
 
             // Allow only digits and decimal character (.) to be added into the field
@@ -990,7 +990,7 @@ function checkFields(elements) {
     for (let input of elements) {
 
         // Checking for empty inputs and invalid number-marked inputs
-        if (!input.value || (input.inputMode == "numeric" && isNaN(input.value))) {
+        if (!input.value || (input.inputMode == "decimal" && isNaN(input.value))) {
             ok = false;
             input.classList.add("illegal");
         } else input.classList.remove("illegal");
