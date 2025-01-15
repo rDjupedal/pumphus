@@ -990,7 +990,7 @@ function checkFields(elements) {
     for (let input of elements) {
 
         // Checking for empty inputs and invalid number-marked inputs
-        if (!input.value || (input.inputMode == "decimal" && isNaN(input.value))) {
+        if (!input.value || (input.inputMode === "decimal" && isNaN(input.value))) {
             ok = false;
             input.classList.add("illegal");
         } else input.classList.remove("illegal");
