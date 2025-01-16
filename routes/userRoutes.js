@@ -1,6 +1,7 @@
 /* USER ROUTES */
 
 const DEBUG = false;
+const SALT_ROUNDS = 10;
 const UsersSchema = require("../models/users");
 const express = require("express");
 const app = express.Router();
@@ -47,7 +48,10 @@ app.post("/api/login", async function(req, res) {
         })
         .then(() => { return regenSession(); })
         .then(() => {
-            res.status(200).send({"message": "Logged in as " + dbUser.username});
+            res.status(200).send({
+                "message": "Logged in as " + dbUser.username,
+                "admin" : (dbUser.admin? true : false)
+            });
             console.log("Logged in as " + dbUser.username);
         })
     .catch((err) => {
@@ -87,7 +91,7 @@ app.put("/api/changepass", isAuth, function(req, res) {
         .then((isCorrect) => {
             if (!isCorrect) return Promise.reject("Incorrect password");
             if (req.body.newpassword.length < 4) return Promise.reject("New password too short or too simple");
-            return bcrypt.genSalt(10 );
+            return bcrypt.genSalt(SALT_ROUNDS );
         })
         .then((salt) => {
             if (!salt) return Promise.reject(`Failed generating salt`);
@@ -122,25 +126,39 @@ app.post("/api/newuser", isAuth, function(req, res) {
         console.log(key + ":  " + newUser[key]);
     }
 
-    bcrypt.genSalt(10)
+    let error;
+
+    // Get the current user from database
+    UsersSchema.findOne({"_id": req.session.userid})
+        .then((user) => {
+            // Checking logged in user
+            if (!user) return Promise.reject({ code: 401, msg: "Logged in user not found, who are you really?" });
+            if (!user.admin) return Promise.reject({ code: 403, msg: "You are not admin, can't create new users" });
+            return UsersSchema.findOne({"username": req.body.username});
+        })
+        .then((existing) => {
+            if (existing) return Promise.reject({ code: 409, msg: "User already exists" });
+            return bcrypt.genSalt(SALT_ROUNDS);
+        })
         .then((salt) => {
-            if (!salt) return Promise.reject(`Failed generating salt`);
-            return bcrypt.hash(req.body.password, salt)
+            if (!salt) return Promise.reject({ code: 500, msg: `Failed generating salt` });
+            return bcrypt.hash(req.body.password, salt);
         })
         .then((hashedPwd) => {
-            if (!hashedPwd) return Promise.reject("Failed getting hash for new password");
+            if (!hashedPwd) return Promise.reject({ code: 500, msg: "Failed generating hash for new password" });
             newUser.password = hashedPwd;
-            newUser.save();
+            return newUser.save();
         })
         .then(() => {
-            res.status(200).send({"message" : "User successfully saved"});
-            console.log("new user saved to database");
-            //todo redirect?
+            res.status(201).send({"message": "User successfully created"});
+            console.log("New user saved to database");
         })
         .catch((err) => {
-            res.status(400).send({"error" : "Error saving new user to database"});
-            console.log("Error saving new user:\t" + err);
+            res.status(err.code).send({ "error": "Error saving new user to database:   " + err.msg });
+            console.log("Error saving new user:\t" + err.code + "\t" + err.msg);
         })
-});
+
+})
+
 
 module.exports = app;

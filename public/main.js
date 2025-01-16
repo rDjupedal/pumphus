@@ -1,14 +1,13 @@
-window.onload = init();
 
-/**
- * Starting point.
- * Sets up global variables and listeners for navigation button / links.
- */
-function init() {
+/* GLOBAL VARIABLES */
+const LoginStatus = Object.freeze( {
+    NONE : 0,
+    USER : 1,
+    ADMIN : 2
+});
 
-    /* GLOBAL VARIABLES */
-    FIELDS = {
-    week:           {label: "Vecka", label2: "V.", type: "number", req: true},
+const FIELDS = {
+        week:           {label: "Vecka", label2: "V.", type: "number", req: true},
         date:       {label: "Datum", label2: "Dat.", type: "date", req: true},
         ph:         {label: "pH", label2: "pH", type: "number", req: true},
         wm:         {label: "Vatten (m3)", label2: "m3", type: "number", req: true},
@@ -20,32 +19,40 @@ function init() {
         sign:       {label: "Signeras", label2: "sign.", type: "string", req: true},
         note:       {label: "Notering", label2: "not.", type: "string", req: false}
     }
-    isLoggedIn = false;
 
-    // Local testing
-    //BASE_URL = "http://localhost:3000/api";
+let isLoggedIn = LoginStatus.NONE;
 
-    // LAN testing
-    //BASE_URL = "http://192.168.0.132:3000/api";
+// Local testing
+const BASE_URL = "http://localhost:3000/api";
+// LAN testing
+//const BASE_URL = "http://192.168.0.132:3000/api";
+// Deployment
+//const BASE_URL = "/api";
 
-    // Deployment
-    BASE_URL = "/api";
+window.onload = init();
+
+/**
+ * Starting point.
+ * Sets up listeners for navigation button / links and shows the login page.
+ */
+function init() {
 
      // Setup navigation links
     document.getElementById("navMenuToggle").addEventListener("click", function() {
-        if (isLoggedIn) showHideNav();
+        if (isLoggedIn !== LoginStatus.NONE) showHideNav();
         else {
             alert("Du måste logga in först");
             loginMenu(getRecords);
         }
     });
-    document.getElementById("navLogOut").addEventListener("click", function() {logOutRequest(loginMenu())});
+    document.getElementById("navLogOut").addEventListener("click", function() { logOutRequest(loginMenu()) });
     document.getElementById("navNewRec").addEventListener("click", newRecord);
-    document.getElementById("navListRec").addEventListener("click", function() {getRecords(null)});
+    document.getElementById("navListRec").addEventListener("click", function() { getRecords(null) });
     document.getElementById("navNewMain").addEventListener("click", newMaintenanceMenu);
-    document.getElementById("navListMain").addEventListener("click", function() {fetchMaintenance(listMaintenanceMenu); });
+    document.getElementById("navListMain").addEventListener("click", function() { fetchMaintenance(listMaintenanceMenu); });
     document.getElementById("navChangePass").addEventListener("click", changePasswordMenu);
     document.getElementById("navExpCsv").addEventListener("click", downloadCsv);
+    document.getElementById("navAdminMenu").addEventListener("click", adminMenu);
 
     // Hide the navigationpane after clicking on an element
     for (let link of document.getElementsByClassName("nav")) link.addEventListener("click", showHideNav);
@@ -73,8 +80,13 @@ function showHideNav() {
 function loggedIn(loggedIn) {
     // The menu toggle button is automatically enabled / disabled
     isLoggedIn = loggedIn;
-    document.getElementById("navMenuToggle").innerText = (isLoggedIn)? "=" : "X";
-    if (!isLoggedIn) loginMenu(getRecords);
+    document.getElementById("navMenuToggle").innerText = (isLoggedIn === LoginStatus.NONE)? "X" : "=";
+
+    const adminLink = document.getElementById("navAdminMenu");
+    if (isLoggedIn === LoginStatus.ADMIN) adminLink.classList.remove("hidden");
+    else adminLink.classList.add("hidden");
+
+    if (isLoggedIn === LoginStatus.NONE) loginMenu(getRecords);
 }
 
 /**
@@ -122,6 +134,104 @@ function listMaintenanceMenu(main) {
     display.appendChild(table);
 }
 
+function adminMenu() {
+    console.log("admin menu");
+    const display = document.getElementById("displayArea");
+    display.innerHTML = `
+        <table class="input-table">
+            <thead><tr><th>Lägg till ny användare</th><th></th></tr></thead>
+            <tr><th>Användarnamn</th><th><input type = "text" id = "username" name = "username" class="required"></th></tr>
+            <tr><th>Lösenord</th><th><input type = "password" id = "password" name = "password" class="required"></th></tr>
+            <tr><th>Signatur</th><th><input type = "text" id = "sign" name = "sign" class="required"></th></tr>
+            <tr><th>Telefon</th><th><input type = "text" id = "phone" name = "phone"></th></tr>
+            <tr><th>Adress</th><th><input type = "text" id = "address" name = "address"></th></tr>                
+            <tr><th>Administratör</th><th><input type = "checkbox" id = "admin" name = "admin"></th></tr>
+        </table>
+   `
+    const requiredInputs = document.getElementsByClassName("required");
+    console.log(requiredInputs.length);
+
+    for (let input of requiredInputs) {
+        // A field that has been marked as illegal input goes back to normal upon new input
+        input.addEventListener("input",() => input.classList.remove("illegal"));
+        // When focus of an input field is lost, check for correct input
+        input.addEventListener("blur", () => checkFields(new Array(input)) );
+    }
+
+    const createUserBtn = document.createElement("button");
+    createUserBtn.addEventListener("click", () => {
+
+        const userInp = document.getElementById("username");
+        const passwInp = document.getElementById("password");
+        const adminInp = document.getElementById("admin");
+        const signInp = document.getElementById("sign");
+        const phoneInp = document.getElementById("phone");
+        const addressInp = document.getElementById("address");
+
+        if (userInp.value.length < 4) alert("Det nya användarnamnet måste vara minst 4 tecken långt");
+        else if (passwInp.value.length < 4) alert("Det nya lösenordet måste vara minst 4 tecken långt");
+        else {
+
+            const newUser = {
+                username: userInp.value,
+                password: passwInp.value,
+                admin: adminInp.checked,
+                sign: signInp.value,
+                phone: phoneInp.value,
+                address: addressInp.value
+            };
+
+            createUserRequest(newUser, function() {
+                // After successful creation of new user
+                alert("Användaren skapad")
+                userInp.value = "";
+                passwInp.value = "";
+                adminInp.checked = false;
+                signInp.value = "";
+                phoneInp.value = "";
+                addressInp.value = "";
+            });
+        }
+
+    });
+
+    createUserBtn.textContent = "Skapa användare";
+    display.appendChild(createUserBtn);
+}
+
+function createUserRequest(newUser, next) {
+
+    fetch(BASE_URL + "/newuser", {
+        credentials: "include",
+        method: "POST",
+        headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(newUser)
+    })
+    .then((result) => {
+        if (!result.ok) return Promise.reject(result);
+        return result.json();
+    })
+    .then((json) => {
+        console.log(json);
+        if (!json) return Promise.reject(json);
+        if (next) next();
+    })
+    .catch((err) => {
+        console.log(err);
+        switch(err.status) {
+            case 401: alert("Du är inte inloggad. Logga in och försök igen"); break;
+            case 403: alert("Du är inte admin och kan därför inte skapa nya användare"); break;
+            case 409: alert("Användarnamnet finns redan"); break;
+            case 500: alert("Serverfel. Försök senare eller kontakta admin"); break;
+            default: alert("Okänt fel. Kontakta admin");
+        }
+        console.log("Error: " + "\t" + err.status + "\t" + err.statusText) });
+
+}
+
 /**
  * Login and then call <<next>> function
  * @param next function to call on successful login
@@ -145,13 +255,13 @@ function login(next) {
         })})
         .then((result) => {
             console.log(result.statusText);
+
             result.json()
                 .then((user) => {
                     if (user.error) alert("Felaktig inloggning");
                     else {
                         sessionStorage.setItem("sign", user.sign);
-                        //window.location.replace("/");
-                        loggedIn(true);
+                        loggedIn(user.admin? LoginStatus.ADMIN : LoginStatus.USER);
                         next();
                     }
                 })
@@ -166,18 +276,6 @@ function login(next) {
  */
 function loginMenu(next) {
 
-    /*
-    // Log out
-    if (sessionStorage.getItem("sign")) {
-        console.log("Logging out..");
-        sessionStorage.removeItem("sign");
-        logOutRequest();
-        loggedIn(false);
-    }
-
-     */
-
-    // Log in
     const display = document.getElementById("displayArea");
     display.innerHTML = `
         <table class="input-table">
@@ -186,8 +284,6 @@ function loginMenu(next) {
             <tr><th>Lösenord</th><th><input type = "password" id = "password" name = "password"></th></tr>
         </table>
    `
-   //     <button type="button" onclick="login(getRecords)">Logga in</button>
-
     const loginBtn = document.createElement("button");
     loginBtn.textContent = "Logga in";
     loginBtn.addEventListener("click", () => {
@@ -213,7 +309,7 @@ function logOutRequest(next) {
     })
         .then((result) => {
             if (!result.ok) return Promise.reject(result);
-            loggedIn(false);
+            loggedIn(LoginStatus.NONE);
             if (next) next();
         })
         .catch((err) => {
@@ -248,7 +344,7 @@ function createRecord(record, next) {
         .catch((err) => {
             console.log("Error: " + "\t" + err.status + "\t" + err.statusText);
             if (err.status >= 401 && err.status <= 403) {
-                loggedIn(false);
+                loggedIn(LoginStatus.NONE);
                 function next() { editRecord(record, createRecord) };               //loginMenu(editRecord(record, updateRecord));
                 loginMenu(next);
                 alert("Du är inte inloggad. Logga in och försök igen.")
@@ -279,7 +375,7 @@ function getRecords(next) {
         .catch((err) => {
             console.log("Error getting records\t" + err.status + "\t" + err.statusText);
             if (err.status >= 401 && err.status <= 403) {
-                loggedIn(false);
+                loggedIn(LoginStatus.NONE);
                 function next() { changePasswordMenu }
                 loginMenu(next);
                 alert("Du är inte inloggad. Logga in och försök igen.")
@@ -310,7 +406,7 @@ function updateRecord(record, next) {
         .catch((err) => {
             console.log("Error: " + "\t" + err.status + "\t" + err.statusText);
             if (err.status >= 401 && err.status <= 403) {
-                loggedIn(false);
+                loggedIn(LoginStatus.NONE);
                 function next() { editRecord(record, updateRecord) }
                 //loginMenu(editRecord(record, updateRecord));
                 loginMenu(next);
@@ -387,14 +483,7 @@ function updatePassword(oldPassword, newPassword, next) {
             console.log("Error when trying to change password\t" + err.status + "\t" + err.statusText);
             if (err.status === 401) alert("Fel lösenord!");
             else alert("Fel inträffade, försök igen");
-            /*
-            if (err.status >= 401 && err.status <= 403) {
-                loggedIn(false);
-                function next() { changePasswordMenu };
-                loginMenu(next);
-                alert("Du är inte inloggad. Logga in och försök igen.")
-            } else alert("Misslyckades byta löseord. Försök igen");
-             */
+
         });
 }
 
@@ -421,7 +510,7 @@ function delRecord(record, next) {
         .catch((err) => {
             console.log("Error: " + "\t" + err.status + "\t" + err.statusText);
             if (err.status >= 401 && err.status <= 403) {
-                loggedIn(false);
+                loggedIn(LoginStatus.NONE);
                 loginMenu();
                 alert("Du är inte inloggad. Logga in och försök igen.")
             } else alert("Misslyckades radera avläsning. Försök igen");
@@ -450,7 +539,7 @@ function createMaintenance(maintenance) {
         .catch((err) => {
             console.log("Error: " + "\t" + err.status + "\t" + err.statusText);
             if (err.status >= 401 && err.status <= 403) {
-                loggedIn(false);
+                loggedIn(LoginStatus.NONE);
                 function next() { editMaintenanceMenu(maintenance, createMaintenance) }
                 loginMenu(next);
                 alert("Du är inte inloggad. Logga in och försök igen.")
@@ -512,7 +601,7 @@ function updateMaintenance(maintenance) {
         .catch((err) => {
             console.log("problem updating maintenance in db: " + "\t" + err.status + "\t" + err.statusText);
             if (err.status >= 401 && err.status <= 403) {
-                loggedIn(false);
+                loggedIn(LoginStatus.NONE);
                 function next() { editMaintenanceMenu(maintenance, updateMaintenance) }
                 loginMenu(next);
                 alert("Du är inte inloggad. Logga in och försök igen.")
@@ -545,7 +634,7 @@ function delMaintenance(maintenance, next) {
         .catch((err) => {
             console.log("Error: " + "\t" + err.status + "\t" + err.statusText);
             if (err.status >= 401 && err.status <= 403) {
-                loggedIn(false);
+                loggedIn(LoginStatus.NONE);
                 loginMenu(listMaintenanceMenu);
                 alert("Du är inte inloggad. Logga in och försök igen.")
             } else alert("Misslyckades radera underhållsrutin. Försök igen");
