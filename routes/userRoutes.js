@@ -18,6 +18,54 @@ function isAuth(req, res, next) {
     }
 }
 
+/*
+Middleware to check whether user is logged in, but returns with a response code 200, not indicating error.
+ */
+
+function isAuthNiceReply(req, res, next) {
+    if (req.session.userid) next();
+    else res.status(200).send({
+        "message" : "Not logged in",
+        "user" : false,
+        "admin" : false
+        });
+}
+
+app.get("/api/loginstatus", isAuthNiceReply, function(req, res) {
+
+    UsersSchema.findOne({"_id" : req.session.userid})
+        .then((user) => {
+            if (!user) return Promise.reject("User not found");
+
+            res.status(200).send ({
+                "message" : (user.admin? "Admin" : "User") + " is logged in",
+                "user": true,
+                "admin" : user.admin });
+        })
+        .catch((err) => {
+            res.status(401).send({ "error" : err });
+            console.log("Error getting logged in status\n" + err);
+        })
+})
+
+/*
+app.get("/api/loginstatus", isAuth, function(req, res) {
+    UsersSchema.findOne({"_id" : req.session.userid})
+        .then((user) => {
+            if (!user) return Promise.reject("User not found");
+
+            res.status(200).send ({
+                "message" : (user.admin? "Admin" : "User") + " is logged in",
+                "admin" : user.admin });
+        })
+        .catch((err) => {
+            res.status(401).send({ "error" : err });
+            console.log("Error getting logged in status\n" + err);
+        })
+})
+
+ */
+
 /**
  * Log out
  */
@@ -73,7 +121,6 @@ app.post("/api/login", async function(req, res) {
 
 });
 
-
 /**
  * Change password
  */
@@ -125,8 +172,6 @@ app.post("/api/newuser", isAuth, function(req, res) {
         newUser[key] = req.body[key];
         console.log(key + ":  " + newUser[key]);
     }
-
-    let error;
 
     // Get the current user from database
     UsersSchema.findOne({"_id": req.session.userid})

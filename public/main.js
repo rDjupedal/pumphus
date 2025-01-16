@@ -7,7 +7,7 @@ const LoginStatus = Object.freeze( {
 });
 
 const FIELDS = {
-        week:           {label: "Vecka", label2: "V.", type: "number", req: true},
+        week:       {label: "Vecka", label2: "V.", type: "number", req: true},
         date:       {label: "Datum", label2: "Dat.", type: "date", req: true},
         ph:         {label: "pH", label2: "pH", type: "number", req: true},
         wm:         {label: "Vatten (m3)", label2: "m3", type: "number", req: true},
@@ -20,7 +20,8 @@ const FIELDS = {
         note:       {label: "Notering", label2: "not.", type: "string", req: false}
     }
 
-let isLoggedIn = LoginStatus.NONE;
+//let isLoggedIn = LoginStatus.NONE;
+let isLoggedIn;
 
 // Local testing
 const BASE_URL = "http://localhost:3000/api";
@@ -57,8 +58,8 @@ function init() {
     // Hide the navigationpane after clicking on an element
     for (let link of document.getElementsByClassName("nav")) link.addEventListener("click", showHideNav);
 
-    // Start by going to the login menu followed by listing the records
-    loginMenu(getRecords);
+    // If logged in show the records, otherwise go first to login page.
+    getLoginStatus(getRecords, loginMenu(getRecords));
 }
 
 /**
@@ -74,7 +75,40 @@ function showHideNav() {
 }
 
 /**
- * Reflect the view depending on whether user is logged in or not
+ * Sends a server request to check if user is logged in and whether it is admin. Updates and calls a function depending on result.
+ * @param funcLoggedIn Function to call if logged in
+ * @param funcLoggedOut Function to call if not logged in.
+ */
+function getLoginStatus(funcLoggedIn, funcLoggedOut) {
+    fetch(BASE_URL + "/loginstatus", {
+        credentials: "include",
+        method: "GET",
+        headers: {
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+        }})
+        .then((response) => {
+            if (!response.ok) return Promise.reject(response);
+            return response.json();
+        })
+        .then((json) => {
+            if (json.user || json.admin) {
+                loggedIn(json.admin? LoginStatus.ADMIN : LoginStatus.USER);
+                if (funcLoggedIn) funcLoggedIn();
+            } else {
+                loggedIn(LoginStatus.NONE);
+                if (funcLoggedOut) funcLoggedOut();
+            }
+        })
+        .catch((err) => {
+            loggedIn(LoginStatus.NONE);
+            console.log("Error checking if logged in " + err.message);
+            if (funcLoggedOut) funcLoggedOut();
+        })
+}
+
+/**
+ * Sets the login status and reflects the view depending on whether user is logged in or not and whether his is admin
  * @param loggedIn
  */
 function loggedIn(loggedIn) {
@@ -483,7 +517,6 @@ function updatePassword(oldPassword, newPassword, next) {
             console.log("Error when trying to change password\t" + err.status + "\t" + err.statusText);
             if (err.status === 401) alert("Fel lösenord!");
             else alert("Fel inträffade, försök igen");
-
         });
 }
 
