@@ -81,7 +81,9 @@ app.post("/api/login", async function(req, res) {
         .then(() => {
             res.status(200).send({
                 "message": "Logged in as " + dbUser.username,
-                "admin" : (dbUser.admin? true : false)
+                "user" : true,
+                "admin" : (dbUser.admin? true : false),
+                "sign": dbUser.sign
             });
             console.log("Logged in as " + dbUser.username);
         })
