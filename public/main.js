@@ -23,11 +23,11 @@ const FIELDS = {
 let isLoggedIn;
 
 // Local testing
-const BASE_URL = "http://localhost:3000/api";
+//const BASE_URL = "http://localhost:3000/api";
 // LAN testing
 //const BASE_URL = "http://192.168.0.132:3000/api";
 // Deployment
-//const BASE_URL = "/api";
+const BASE_URL = "/api";
 
 window.onload = init();
 
