@@ -21,7 +21,6 @@ function isAuth(req, res, next) {
 /*
 Middleware to check whether user is logged in, but returns with a response code 200, not indicating error.
  */
-
 function isAuthNiceReply(req, res, next) {
     if (req.session.userid) next();
     else res.status(200).send({
@@ -31,8 +30,10 @@ function isAuthNiceReply(req, res, next) {
         });
 }
 
+/**
+ * Check login status of user / admin
+ */
 app.get("/api/loginstatus", isAuthNiceReply, function(req, res) {
-
     UsersSchema.findOne({"_id" : req.session.userid})
         .then((user) => {
             if (!user) return Promise.reject("User not found");
@@ -47,24 +48,6 @@ app.get("/api/loginstatus", isAuthNiceReply, function(req, res) {
             console.log("Error getting logged in status\n" + err);
         })
 })
-
-/*
-app.get("/api/loginstatus", isAuth, function(req, res) {
-    UsersSchema.findOne({"_id" : req.session.userid})
-        .then((user) => {
-            if (!user) return Promise.reject("User not found");
-
-            res.status(200).send ({
-                "message" : (user.admin? "Admin" : "User") + " is logged in",
-                "admin" : user.admin });
-        })
-        .catch((err) => {
-            res.status(401).send({ "error" : err });
-            console.log("Error getting logged in status\n" + err);
-        })
-})
-
- */
 
 /**
  * Log out
