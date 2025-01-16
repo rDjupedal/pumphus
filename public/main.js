@@ -101,7 +101,7 @@ function getLoginStatus(funcLoggedIn, funcLoggedOut) {
         })
         .catch((err) => {
             loggedIn(LoginStatus.NONE);
-            console.log("Error checking if logged in " + err.message);
+            console.log("Error checking if logged in " + err);
             if (funcLoggedOut) funcLoggedOut();
         })
 }
