@@ -741,6 +741,10 @@ function newRecord() {
     const record = {
         week: getWeek(),
         date: getDate(new Date()),
+        salt: 0,
+        phplus: 0,
+        phturbo: 0,
+        fluidadd: 0,
         sign: sessionStorage.getItem("sign"),
         main: []
     }
